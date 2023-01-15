@@ -27,8 +27,8 @@ module MrzReader
       end
 
       if @roi
-        crop_image_for_mrz(@temp_image)
-        text = recognize(@temp_image)
+        mrz = crop_image_for_mrz
+        text = recognize(mrz)
       end
       text
     end
@@ -148,25 +148,26 @@ module MrzReader
       @roi = manager.compute
     end
 
-    def crop_image_for_mrz image
-      image_ratio = @image.width / image.width.to_f
+    def crop_image_for_mrz
+      image_ratio = @image.width / @temp_image.width.to_f
       @image.crop("#{@roi.crop_width*image_ratio}x#{@roi.crop_height*image_ratio}+#{@roi.crop_x1*image_ratio}+#{@roi.crop_y1*image_ratio}")
       @image.colorspace('Gray')
       @image.write "./tmp/mrz.png" if debug
+      @image
     end
 
     def get_rect_kernel w, h
       Array.new(w) {Array.new(h, 1)}
     end
 
-    def recognize image
-      image = ::RTesseract.new(
-        @image.path,
+    def recognize mrz_image
+      tesseract = ::RTesseract.new(
+        mrz_image.path,
         lang: 'mrz',
         tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<",
         tessdata_dir: File.expand_path(File.join(File.dirname(__FILE__), '../../vendor'))
       )
-      image.to_s.lines.map(&:strip).find_all{|l| !l.empty?}
+      tesseract.to_s.lines.map(&:strip).find_all{|l| !l.empty?}
     end
   end
 end
